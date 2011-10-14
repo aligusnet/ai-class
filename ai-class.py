@@ -100,13 +100,21 @@ def download_video(urls):
     for video_url in urls:
         video_id = parse_qs(urlparse(video_url).query)['v'][0]
         get_vars = parse_qs(unquote(urlopen("http://www.youtube.com/get_video_info?video_id="+video_id).read()))
-
         title = get_vars['title'][0] + '.flv'
-        link = get_vars['itag'][2]
+        i = 0
+        entries = (get_vars['fmt_list'][0]).split(',')
+        for entry in entries:
+            match = re.search(r'^44.*', entry)
+            if match:
+                break;
+            i = i + 1;
+           
+        link = get_vars['itag'][i]
         link = re.findall(r'44,url=(.*)', link)[0]
+
         print '\n-->Downloading, Title: ', title
         urlretrieve(link, title)
-        
+        break;
 
     chdir(py_path)
 
