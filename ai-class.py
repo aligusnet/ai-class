@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 __author__ = "Deepak.G.R."
@@ -12,7 +11,7 @@ python ai-class.py "topic-name"
 
 topic-names can be "Welcome to AI", "Problem Solving"
 
-PS: Python2.6.2 should be installed in your system.
+PS: Python 2.7 should be installed in your system.
 
 Let me know if you have any problems.
 """
