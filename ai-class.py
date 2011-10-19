@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 __author__ = "Deepak.G.R."
@@ -11,7 +12,7 @@ python ai-class.py "topic-name"
 
 topic-names can be "Welcome to AI", "Problem Solving"
 
-PS: Python 2.7 should be installed in your system.
+PS: Python2.6.2 should be installed in your system.
 
 Let me know if you have any problems.
 """
@@ -24,10 +25,12 @@ import pdb
 import sys
 import json
 from os import *
-
+from json import *
 url_youtube = 'http://www.youtube.com/watch?v='
 #req_unit = 'problem solving'
 #req_unit = 'welcome to AI'
+#req_unit = 'probability in AI'
+
 req_unit = sys.argv[1]
 quiz_hash = dict();
 
@@ -54,12 +57,14 @@ class UrlLister(SGMLParser):
             
             if 'quiz' in category[0]:
                 quiz_id = re.findall(r'quiz_(\d+)', category[0])[0]
-                video_id = quiz_hash[quiz_id]
+                video_ids = quiz_hash[quiz_id]
+                for video_id in video_ids:
+					link = url_youtube + video_id
+					self.urls.append(link)
             else:
                 video_id = re.findall(r'video_\d+_(.+)', category[0])[0]
-                
-            link = url_youtube + video_id
-            self.urls.append(link)
+                link = url_youtube + video_id
+                self.urls.append(link)
             
     def handle_data(self, text):
         if self.flag == 0:
@@ -75,19 +80,23 @@ class UrlLister(SGMLParser):
 def init_quiz_hash():
     print 'STATUS: Initializing quiz_id hash'
     quiz_url = 'http://www.ai-class.com/course/json/filter/QuizQuestion'
-    quiz_url = urlopen(quiz_url)
+    quiz_url = urlopen(quiz_url);
     data = json.load(quiz_url)
     quiz_id = list()
-    
+
     for ind in xrange(len(data['data'])):
         piece = str(data['data'][ind])
         match = re.findall('\'youtube_id\': u\'(.+?)\',.*?\'quiz_question\': (\d+?),', piece)
         
         if match:
-            quiz_id.append(match[0])
+			for entry in match:
+				quiz_id.append(entry)
     
     for v, i in quiz_id:
-        quiz_hash[i] = v
+		if not quiz_hash.has_key(i):
+			quiz_hash[i] = list ()
+		quiz_hash[i].append(v)
+
     print 'STATUS: quiz_id Initialized.'
 
 def download_video(urls):
@@ -107,12 +116,16 @@ def download_video(urls):
             if match:
                 break;
             i = i + 1;
-        
+        if not match:
+			#print 'problem'
+			continue
+
         link = get_vars['itag'][i]
         link = re.findall(r'45,url=(.*)', link)[0]
 
         print '\n-->Downloading, Title: ', title
         urlretrieve(link, title)
+		#break;
         """
         for v in get_vars.keys():
             print v, '\n', get_vars[v], '\n\n'
@@ -131,8 +144,9 @@ def main():
     print 'STATUS: SUCCESS'
     page.close()
     parser.close()
-    i = 0
+    
     """
+    i = 0
     for url in parser.urls:
         print 'url: ', url, '\n'
         i = i + 1
