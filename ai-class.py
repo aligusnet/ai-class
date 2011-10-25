@@ -111,7 +111,7 @@ def download_video(urls):
         i = 0
         entries = (get_vars['fmt_list'][0]).split(',')
         for entry in entries:
-            match = re.search(r'^45.*', entry)
+            match = re.search(r'^44.*', entry)
             if match:
                 break;
             i = i + 1;
@@ -120,7 +120,7 @@ def download_video(urls):
 			continue
 
         link = get_vars['itag'][i]
-        link = re.findall(r'45,url=(.*)', link)[0]
+        link = re.findall(r'44,url=(.*)', link)[0]
 
         print '\n-->Downloading, Title: ', title
         urlretrieve(link, title)
