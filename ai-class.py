@@ -114,14 +114,23 @@ def download_video(urls):
     dirname = str(req_unit)
     py_path = path.abspath(sys.argv[0])
     py_path = path.dirname(py_path)
-    mkdir(dirname)
-    chdir(dirname)
+    
+    if path.exists(dirname):
+        delete_recent_video(dirname)
+    else:
+        mkdir(dirname)
+        chdir(dirname)
+    
+
     for video_url in urls:
         video_id = parse_qs(urlparse(video_url).query)['v'][0]
         get_vars = parse_qs(unquote(urlopen("http://www.youtube.com/get_video_info?video_id=" + video_id).read()))
         title = get_vars['title'][0] + video_fmt
-        i = 0
         
+        if path.isfile(title):
+            continue
+        
+        i = 0
         entries = get_vars['itag']
         for entry in entries:
             match = re.search(r'.*itag=' + str(code), entry)
@@ -141,6 +150,17 @@ def download_video(urls):
         urlretrieve(link, title)
 
     chdir(py_path)
+
+def delete_recent_video(dirname):
+    chdir(dirname)
+    name = ''
+    recent = 0
+    for fo in listdir('.'):
+        temp = stat(fo)[8]
+        if temp > recent:
+            recent = temp
+            name = fo
+    remove(name)
 
 def main():
     
