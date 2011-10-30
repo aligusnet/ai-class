@@ -15,17 +15,18 @@ PS: Python 2.7.2 should be installed in your system.
 
 Let me know if you get into any problems.
 """
-
+from xml.etree import ElementTree as ET
 from urllib import *
 from urlparse import *
 from sgmllib import SGMLParser
-from os import *
+import os
 from json import *
 import re
 import pdb
 import sys
 import json
 import urllib2
+
 
 code = 35
 """
@@ -37,8 +38,7 @@ if code == 22:
     video_fmt = '.mp4'
 else:
     video_fmt = '.flv'
-        
-
+    
 url_youtube = 'http://www.youtube.com/watch?v='
 quiz_hash = dict();
 
@@ -85,7 +85,79 @@ class UrlLister(SGMLParser):
             if match and len(text) != 0:
                 self.flag = 1
             
+class youtubeSub:
+    def __init__(self):      
+        self.srt_string = list()
+        self.title = ''
+        
+    def time_format(self, value, hrs, mins, secs):
+        secs = secs + int(value)
+        if secs >= 60:
+            mins = mins + (secs/60)
+            secs = secs % 60
+            
+        if mins >= 60:
+            hrs = hrs + (mins/60)
+            mins = mins % 60
+            
+        return (hrs, mins, secs)
 
+    def store_line(self, line, hrs, mins, secs):
+        h = '%02d' % hrs
+        m = '%02d' % mins
+        s = '%02d' % secs
+        self.srt_string.append(h + ':' + m + ':' + s + ',0')
+
+    def parse_data(self, data):
+        line = 1
+        tree = ET.fromstring(data)
+        for subelement in tree:
+            hrs = 0
+            mins = 0
+            secs = 0
+            time = subelement.attrib
+            start = time['start']
+            (hrs, mins, secs) = self.time_format(start, hrs, mins, secs)
+            self.srt_string.append(str(line) + '\n')
+            self.store_line(line, hrs, mins, secs)
+            self.srt_string.append(' --> ')
+            dur = time['dur']
+            (hrs, mins, secs) = self.time_format(dur, hrs, mins, secs)
+            self.store_line(line, hrs, mins, secs)
+            self.srt_string.append('\n' + subelement.text + '\n\n')
+            line = line + 1
+        self.write_sub()
+            
+    def write_sub(self):
+        dirname = 'subtitles'
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
+        os.chdir(dirname)
+
+        
+        fobj = open(self.title, 'w')
+        for line in self.srt_string:
+            fobj.write(line)
+        fobj.close()
+        os.chdir('..')
+
+    def get_subtitle(self, get_vars):
+        self.title = get_vars['title'][0] + '.srt'
+        sub_link = get_vars['ttsurl'][0] + '&'\
+                   + 'expire=' + get_vars['expire'][0] + '&'\
+                   + 'key=' + get_vars['key'][0] + '&'\
+                   + 'format=1' + '&'\
+                   + 'hl=en' + '&'\
+                   + 'ts=' + get_vars['timestamp'][0] + '&'\
+                   + 'v=' + get_vars['video_id'][0] + '&'\
+                   + 'lang=en' + '&'\
+                   + 'type=track' + '&'\
+                   + 'name=English via dotsub' + '&'\
+                   + 'kind=&asr_langs=en,ja&caps=asr' + '&'\
+                   + 'signature=' + get_vars['signature'][0]
+        data = urlopen(sub_link).read()
+        self.parse_data(data)
+        
 def init_quiz_hash():
     print 'STATUS: Initializing quiz_id hash'
     quiz_url = 'http://www.ai-class.com/course/json/filter/QuizQuestion'
@@ -96,12 +168,12 @@ def init_quiz_hash():
     for ind in xrange(len(data['data'])):
         piece = str(data['data'][ind])
         match = re.findall('\'youtube_id\': u\'(.+?)\',.*?\'quiz_question\': (\d+?),', piece)
+        hw = re.search(r'\'is_homework\': u\'true', piece)
         
         if match:
             for entry in match:
                 quiz_id.append(entry)
 
-    
     for v, i in quiz_id:
         if not quiz_hash.has_key(i):
             quiz_hash[i] = list()
@@ -112,22 +184,19 @@ def init_quiz_hash():
 
 def download_video(urls):
     dirname = str(req_unit)
-    py_path = path.abspath(sys.argv[0])
-    py_path = path.dirname(py_path)
     
-    if path.exists(dirname):
+    if os.path.exists(dirname):
         delete_recent_video(dirname)
     else:
-        mkdir(dirname)
-        chdir(dirname)
+        os.mkdir(dirname)
+        os.chdir(dirname)
     
-
     for video_url in urls:
         video_id = parse_qs(urlparse(video_url).query)['v'][0]
         get_vars = parse_qs(unquote(urlopen("http://www.youtube.com/get_video_info?video_id=" + video_id).read()))
         title = get_vars['title'][0] + video_fmt
         
-        if path.isfile(title):
+        if os.path.isfile(title):
             continue
         
         i = 0
@@ -146,21 +215,28 @@ def download_video(urls):
         link = re.findall(r'\d+,url=(.*)', link)[0]
 
         print '\n-->Downloading, Title: ', title
-        
         urlretrieve(link, title)
+        sub_obj = youtubeSub()
+        sub_obj.get_subtitle(get_vars)
 
-    chdir(py_path)
+    os.chdir('..')
 
 def delete_recent_video(dirname):
-    chdir(dirname)
+    os.chdir(dirname)
+    files = os.listdir('.')
+    if not files:
+        return
+    
     name = ''
     recent = 0
-    for fo in listdir('.'):
-        temp = stat(fo)[8]
+    for fo in files:
+        if os.path.isdir(fo):
+            continue
+        temp = os.stat(fo).st_mtime
         if temp > recent:
             recent = temp
             name = fo
-    remove(name)
+    os.remove(name)
 
 def main():
     
@@ -175,7 +251,7 @@ def main():
     parser.close()
     print 'Number of videos: ', len(parser.urls);
     print 'STATUS: Starting download.'
-    
+ 
     download_video(parser.urls)
     
     print '\n\n*********Download Finished*********'
