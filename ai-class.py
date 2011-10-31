@@ -90,61 +90,47 @@ class youtubeSub:
         self.srt_string = list()
         self.title = ''
         
-    def time_format(self, value, hrs, mins, secs, msecs):
-        if msecs >= 1000:
-            secs = secs + (msecs/1000)
-            msecs = msecs % 1000
+    def time_format(self, secs):
+        hrs = 0
+        mins = 0
+        parts = str(secs).split('.')
+        secs = int(parts[0])
+        msecs = parts[1]
 
-        secs = secs + value
         if secs >= 60:
             mins = mins + (secs/60)
             secs = secs % 60
             
-        if mins > 60:
+        if mins >= 60:
             hrs = hrs + (mins/60)
-            mins = mins % 60
-            
+            mins = mins % 60      
         return (hrs, mins, secs, msecs)
 
     def store_line(self, line, hrs, mins, secs, msecs):
         h = '%02d' % hrs
         m = '%02d' % mins
         s = '%02d' % secs
-        ms = str(msecs) + '0' * (3-len(str(msecs)))
+        ms = msecs + '0' * (3-len(msecs))
         self.srt_string.append(h + ':' + m + ':' + s + ',' + ms)
 
     def parse_data(self, data):
-        line = 1
-        
         try:
             tree = ET.fromstring(data)
         except:
             return
-        
-        for subelement in tree:
-            hrs = 0
-            mins = 0
-            secs = 0
-            msecs = 0
-            time = subelement.attrib
-            
-            start = str(float(time['start']))
-            parts = start.split('.')
-            start = int(parts[0])
-            msecs = msecs + int(parts[1])
-            
-            (hrs, mins, secs, msecs) = self.time_format(start, hrs, mins, secs, msecs)
-            self.srt_string.append(str(line) + '\n')
-            
-            self.store_line(line, hrs, mins, secs, msecs)
-            self.srt_string.append(' --> ')
-            
-            dur = str(float(time['dur']))
-            parts = dur.split('.')
-            dur = int(parts[0])
-            msecs = msecs + int(parts[1])
 
-            (hrs, mins, secs, msecs) = self.time_format(dur, hrs, mins, secs, msecs)
+        line = 1                
+        for subelement in tree:
+            time = subelement.attrib        
+            secs = float(time['start'])
+            t_secs = secs
+            (hrs, mins, secs, msecs) = self.time_format(secs)
+            self.srt_string.append(str(line) + '\n')  
+            self.store_line(line, hrs, mins, secs, msecs)
+            self.srt_string.append(' --> ')      
+            dur = float(time['dur'])
+            secs = t_secs + dur
+            (hrs, mins, secs, msecs) = self.time_format(secs)
             self.store_line(line, hrs, mins, secs, msecs)
             self.srt_string.append('\n' + subelement.text + '\n\n')
             line = line + 1
@@ -155,11 +141,9 @@ class youtubeSub:
         if not os.path.exists(dirname):
             os.mkdir(dirname)
         os.chdir(dirname)
-
-        
         fobj = open(self.title, 'w')
         for line in self.srt_string:
-            fobj.write(line)
+            fobj.write(line.encode('ASCII', 'ignore'))
         fobj.close()
         os.chdir('..')
 
@@ -274,7 +258,7 @@ def main():
     print 'Number of videos: ', len(parser.urls);
     print 'STATUS: Starting download.'
  
-    download_video(parser.urls[0:3])
+    download_video(parser.urls)
     
     print '\n\n*********Download Finished*********'
     
