@@ -90,40 +90,62 @@ class youtubeSub:
         self.srt_string = list()
         self.title = ''
         
-    def time_format(self, value, hrs, mins, secs):
-        secs = secs + int(value)
+    def time_format(self, value, hrs, mins, secs, msecs):
+        if msecs >= 1000:
+            secs = secs + (msecs/1000)
+            msecs = msecs % 1000
+
+        secs = secs + value
         if secs >= 60:
             mins = mins + (secs/60)
             secs = secs % 60
             
-        if mins >= 60:
+        if mins > 60:
             hrs = hrs + (mins/60)
             mins = mins % 60
             
-        return (hrs, mins, secs)
+        return (hrs, mins, secs, msecs)
 
-    def store_line(self, line, hrs, mins, secs):
+    def store_line(self, line, hrs, mins, secs, msecs):
         h = '%02d' % hrs
         m = '%02d' % mins
         s = '%02d' % secs
-        self.srt_string.append(h + ':' + m + ':' + s + ',0')
+        ms = str(msecs) + '0' * (3-len(str(msecs)))
+        self.srt_string.append(h + ':' + m + ':' + s + ',' + ms)
 
     def parse_data(self, data):
         line = 1
-        tree = ET.fromstring(data)
+        
+        try:
+            tree = ET.fromstring(data)
+        except:
+            return
+        
         for subelement in tree:
             hrs = 0
             mins = 0
             secs = 0
+            msecs = 0
             time = subelement.attrib
-            start = time['start']
-            (hrs, mins, secs) = self.time_format(start, hrs, mins, secs)
+            
+            start = str(float(time['start']))
+            parts = start.split('.')
+            start = int(parts[0])
+            msecs = msecs + int(parts[1])
+            
+            (hrs, mins, secs, msecs) = self.time_format(start, hrs, mins, secs, msecs)
             self.srt_string.append(str(line) + '\n')
-            self.store_line(line, hrs, mins, secs)
+            
+            self.store_line(line, hrs, mins, secs, msecs)
             self.srt_string.append(' --> ')
-            dur = time['dur']
-            (hrs, mins, secs) = self.time_format(dur, hrs, mins, secs)
-            self.store_line(line, hrs, mins, secs)
+            
+            dur = str(float(time['dur']))
+            parts = dur.split('.')
+            dur = int(parts[0])
+            msecs = msecs + int(parts[1])
+
+            (hrs, mins, secs, msecs) = self.time_format(dur, hrs, mins, secs, msecs)
+            self.store_line(line, hrs, mins, secs, msecs)
             self.srt_string.append('\n' + subelement.text + '\n\n')
             line = line + 1
         self.write_sub()
@@ -252,7 +274,7 @@ def main():
     print 'Number of videos: ', len(parser.urls);
     print 'STATUS: Starting download.'
  
-    download_video(parser.urls)
+    download_video(parser.urls[0:3])
     
     print '\n\n*********Download Finished*********'
     
