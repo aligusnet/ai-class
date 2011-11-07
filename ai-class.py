@@ -173,18 +173,18 @@ def init_quiz_hash():
 
     for ind in xrange(len(data['data'])):
         piece = str(data['data'][ind])
-        match = re.findall('\'youtube_id\': u\'(.+?)\',.*?\'quiz_question\': (\d+?),', piece)
-        hw = re.search(r'\'is_homework\': u\'true', piece)
+        match = re.search(r'\'quiz_question\': (\d+?),', piece)
+        v_id = re.findall(r'\'youtube_id\': u\'(.+?)\'', piece)
         
-        if match:
-            for entry in match:
-                quiz_id.append(entry)
+        hw = re.search(r'\'is_homework\': u\'true', piece)
+        if match and v_id:
+            q_id = match.group(1)
+            
+            for v in v_id:
+                if not quiz_hash.has_key(q_id):
+                    quiz_hash[q_id] = list()
 
-    for v, i in quiz_id:
-        if not quiz_hash.has_key(i):
-            quiz_hash[i] = list()
-
-        quiz_hash[i].append(v)
+                quiz_hash[q_id].append(v)
 
     print 'STATUS: quiz_id Initialized.'
 
