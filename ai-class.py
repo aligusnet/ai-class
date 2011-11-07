@@ -176,7 +176,6 @@ def init_quiz_hash():
         match = re.search(r'\'quiz_question\': (\d+?),', piece)
         v_id = re.findall(r'\'youtube_id\': u\'(.+?)\'', piece)
         
-        hw = re.search(r'\'is_homework\': u\'true', piece)
         if match and v_id:
             q_id = match.group(1)
             
