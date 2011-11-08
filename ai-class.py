@@ -149,18 +149,21 @@ class youtubeSub:
 
     def get_subtitle(self, get_vars):
         self.title = get_vars['title'][0] + '.srt'
-        sub_link = get_vars['ttsurl'][0] + '&'\
-                   + 'expire=' + get_vars['expire'][0] + '&'\
-                   + 'key=' + get_vars['key'][0] + '&'\
-                   + 'format=1' + '&'\
-                   + 'hl=en' + '&'\
-                   + 'ts=' + get_vars['timestamp'][0] + '&'\
-                   + 'v=' + get_vars['video_id'][0] + '&'\
-                   + 'lang=en' + '&'\
-                   + 'type=track' + '&'\
-                   + 'name=English via dotsub' + '&'\
-                   + 'kind=&asr_langs=en,ja&caps=asr' + '&'\
-                   + 'signature=' + get_vars['signature'][0]
+        try:
+            sub_link = get_vars['ttsurl'][0] + '&'\
+                       + 'expire=' + get_vars['expire'][0] + '&'\
+                       + 'key=' + get_vars['key'][0] + '&'\
+                       + 'format=1' + '&'\
+                       + 'hl=en' + '&'\
+                       + 'ts=' + get_vars['timestamp'][0] + '&'\
+                       + 'v=' + get_vars['video_id'][0] + '&'\
+                       + 'lang=en' + '&'\
+                       + 'type=track' + '&'\
+                       + 'name=English via dotsub' + '&'\
+                       + 'kind=&asr_langs=en,ja&caps=asr' + '&'\
+                       + 'signature=' + get_vars['signature'][0]
+        except:
+            return          
         data = urlopen(sub_link).read()
         self.parse_data(data)
         
@@ -176,6 +179,7 @@ def init_quiz_hash():
         match = re.search(r'\'quiz_question\': (\d+?),', piece)
         v_id = re.findall(r'\'youtube_id\': u\'(.+?)\'', piece)
         
+        hw = re.search(r'\'is_homework\': u\'true', piece)
         if match and v_id:
             q_id = match.group(1)
             
