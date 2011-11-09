@@ -79,10 +79,9 @@ class UrlLister(SGMLParser):
     def handle_data(self, text):
         if self.flag == 0:
             text = text.strip();
-            text = re.sub(r'[^A-Za-z]', '', text)
-            self.req_unit = re.sub(r'[^A-Za-z]', '', self.req_unit)
-            match = re.match(self.req_unit, text, re.IGNORECASE)
-            if match and len(text) != 0:
+            text = re.sub(r'[^A-Za-z]', '', text).lower()
+            self.req_unit = re.sub(r'[^A-Za-z]', '', self.req_unit).lower()
+            if text == self.req_unit and len(text) != 0:
                 self.flag = 1
             
 class youtubeSub:
