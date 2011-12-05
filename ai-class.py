@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 __author__ = "Deepak.G.R."
+__credits__ = "Alexander Ignatyev"
 __license__ = 'Public Domain'
 
 """
@@ -25,20 +27,27 @@ import re
 import pdb
 import sys
 import json
+import codecs
 import urllib2
+import youtube
 
-
-code = 35
+code = youtube.VideoRes.WXGA
 """
-code = 34 for 640*360
-code = 35 for 854*480(Default)
-code = 22 for 1270*720
+code = nHD for 640*360
+code = FWVGA for 854*480(Default)
+code = WXGA for 1270*720
 """
-if code == 22:
+if code == youtube.VideoRes.WXGA:
     video_fmt = '.mp4'
 else:
     video_fmt = '.flv'
-    
+
+# set languages for subtitles;
+languages = [] #all languages
+# languages = ['en', 'ru']
+
+subtitles_dirname = 'subtitles' #empty for current dir
+
 url_youtube = 'http://www.youtube.com/watch?v='
 quiz_hash = dict();
 
@@ -83,112 +92,43 @@ class UrlLister(SGMLParser):
             self.req_unit = re.sub(r'[^A-Za-z]', '', self.req_unit).lower()
             if text == self.req_unit and len(text) != 0:
                 self.flag = 1
-            
-class youtubeSub:
-    def __init__(self):      
-        self.srt_string = list()
-        self.title = ''
-        
-    def time_format(self, secs):
-        hrs = 0
-        mins = 0
-        parts = str(secs).split('.')
-        secs = int(parts[0])
-        msecs = parts[1]
 
-        if secs >= 60:
-            mins = mins + (secs/60)
-            secs = secs % 60
-            
-        if mins >= 60:
-            hrs = hrs + (mins/60)
-            mins = mins % 60      
-        return (hrs, mins, secs, msecs)
-
-    def store_line(self, line, hrs, mins, secs, msecs):
-        h = '%02d' % hrs
-        m = '%02d' % mins
-        s = '%02d' % secs
-        ms = msecs + '0' * (3-len(msecs))
-        self.srt_string.append(h + ':' + m + ':' + s + ',' + ms)
-
-    def parse_data(self, data):
-        try:
-            tree = ET.fromstring(data)
-        except:
-            return
-
-        line = 1                
-        for subelement in tree:
-            time = subelement.attrib        
-            secs = float(time['start'])
-            t_secs = secs
-            (hrs, mins, secs, msecs) = self.time_format(secs)
-            self.srt_string.append(str(line) + '\n')  
-            self.store_line(line, hrs, mins, secs, msecs)
-            self.srt_string.append(' --> ')      
-            dur = float(time['dur'])
-            secs = t_secs + dur
-            (hrs, mins, secs, msecs) = self.time_format(secs)
-            self.store_line(line, hrs, mins, secs, msecs)
-            self.srt_string.append('\n' + subelement.text + '\n\n')
-            line = line + 1
-        self.write_sub()
-            
-    def write_sub(self):
-        dirname = 'subtitles'
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
-        os.chdir(dirname)
-        fobj = open(self.title, 'w')
-        for line in self.srt_string:
-            fobj.write(line.encode('ASCII', 'ignore'))
-        fobj.close()
-        os.chdir('..')
-
-    def get_subtitle(self, get_vars):
-        self.title = get_vars['title'][0] + '.srt'
-        try:
-            sub_link = get_vars['ttsurl'][0] + '&'\
-                       + 'expire=' + get_vars['expire'][0] + '&'\
-                       + 'key=' + get_vars['key'][0] + '&'\
-                       + 'format=1' + '&'\
-                       + 'hl=en' + '&'\
-                       + 'ts=' + get_vars['timestamp'][0] + '&'\
-                       + 'v=' + get_vars['video_id'][0] + '&'\
-                       + 'lang=en' + '&'\
-                       + 'type=track' + '&'\
-                       + 'name=English via dotsub' + '&'\
-                       + 'kind=&asr_langs=en,ja&caps=asr' + '&'\
-                       + 'signature=' + get_vars['signature'][0]
-        except:
-            return          
-        data = urlopen(sub_link).read()
-        self.parse_data(data)
-        
 def init_quiz_hash():
-    print 'STATUS: Initializing quiz_id hash'
-    quiz_url = 'http://www.ai-class.com/course/json/filter/QuizQuestion'
-    quiz_url = urllib2.urlopen(quiz_url);
-    data = json.load(quiz_url)
-    quiz_id = list()
+   print 'STATUS: Initializing quiz_id hash'
+   quiz_url = 'http://www.ai-class.com/course/json/filter/QuizQuestion'
+   quiz_url = urllib2.urlopen(quiz_url);
+   data = json.load(quiz_url)
+   quiz_id = list()
 
-    for ind in xrange(len(data['data'])):
-        piece = str(data['data'][ind])
-        match = re.search(r'\'quiz_question\': (\d+?),', piece)
-        v_id = re.findall(r'\'youtube_id\': u\'(.+?)\'', piece)
-        
-        hw = re.search(r'\'is_homework\': u\'true', piece)
-        if match and v_id:
-            q_id = match.group(1)
-            
-            for v in v_id:
-                if not quiz_hash.has_key(q_id):
-                    quiz_hash[q_id] = list()
+   for ind in xrange(len(data['data'])):
+       piece = str(data['data'][ind])
+       match = re.search(r'\'quiz_question\': (\d+?),', piece)
+       v_id = re.findall(r'\'youtube_id\': u\'(.+?)\'', piece)
 
-                quiz_hash[q_id].append(v)
+       hw = re.search(r'\'is_homework\': u\'true', piece)
+       if match and v_id:
+           q_id = match.group(1)
 
-    print 'STATUS: quiz_id Initialized.'
+           for v in v_id:
+               if not quiz_hash.has_key(q_id):
+                   quiz_hash[q_id] = list()
+
+               quiz_hash[q_id].append(v)
+
+   print 'STATUS: quiz_id Initialized.'
+
+def write_subtitle(title, lang, subtitle):
+    if subtitles_dirname:
+        if not os.path.exists(subtitles_dirname):
+            os.mkdir(subtitles_dirname)
+        os.chdir(subtitles_dirname)
+
+    with open(title+'_' + lang + '.srt', 'w') as f:
+        f.write( codecs.BOM_UTF8 )
+        f.write(subtitle.encode('utf-8'))
+
+    if subtitles_dirname:
+        os.chdir('..')
 
 def download_video(urls):
     dirname = str(req_unit)
@@ -200,32 +140,26 @@ def download_video(urls):
         os.chdir(dirname)
     
     for video_url in urls:
-        video_id = parse_qs(urlparse(video_url).query)['v'][0]
-        get_vars = parse_qs(unquote(urlopen("http://www.youtube.com/get_video_info?video_id=" + video_id).read()))
-        title = get_vars['title'][0] + video_fmt
+        yt = youtube.YouTube(video_url, code)
+        title = yt.get_title()
+        video_file = title + video_fmt
         
-        if os.path.isfile(title):
+        if os.path.isfile(video_file):
             continue
-        
-        i = 0
-        entries = get_vars['itag']
-        for entry in entries:
-            match = re.search(r'.*itag=' + str(code), entry)
-            if match:
-                break
-            i = i + 1
-            
-        if not match:
-            print 'ERROR: Couldn\'t Download video: ', title
-            continue
-
-        link = get_vars['itag'][i]
-        link = re.findall(r'\d+,url=(.*)', link)[0]
 
         print '\n-->Downloading, Title: ', title
-        urlretrieve(link, title)
-        sub_obj = youtubeSub()
-        sub_obj.get_subtitle(get_vars)
+        video = yt.get_video()
+        with open(video_file, 'w') as f:
+            f.write(video)
+
+        subtitles = yt.get_subtitles()
+        if languages:
+            for lang in languages:
+                if lang in subtitles:
+                    write_subtitle(title, lang, subtitles[lang])
+        else:
+            for (lang, subtitle) in subtitles.items():
+                write_subtitle(title, lang, subtitle)
 
     os.chdir('..')
 
@@ -246,8 +180,8 @@ def delete_recent_video(dirname):
             name = fo
     os.remove(name)
 
+
 def main():
-    
     init_quiz_hash();
     page = urllib2.urlopen("http://www.ai-class.com/home/")
     htmlSource = page.read()
