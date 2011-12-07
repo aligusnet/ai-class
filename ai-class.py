@@ -143,14 +143,12 @@ def download_video(urls):
         yt = youtube.YouTube(video_url, code)
         title = yt.get_title()
         video_file = title + video_fmt
-        
-        if os.path.isfile(video_file):
-            continue
 
-        print '\n-->Downloading, Title: ', title
-        video = yt.get_video()
-        with open(video_file, 'w') as f:
-            f.write(video)
+        if not os.path.isfile(video_file):
+            print '\n-->Downloading, Title: ', title
+            video = yt.get_video()
+            with open(video_file, 'w') as f:
+                f.write(video)
 
         subtitles = yt.get_subtitles()
         if languages:
